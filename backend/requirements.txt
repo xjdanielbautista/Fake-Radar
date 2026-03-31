@@ -1,0 +1,10 @@
+# Librerias base
+
+# FastAPI: El framework web principal para crear la API REST.
+fastapi==0.110.0
+
+# Uvicorn: Un servidor ASGI ligero y rápido para ejecutar la aplicación FastAPI.
+uvicorn==0.27.1
+
+# Pydantic: Para la validación de datos y la creación de modelos de datos.
+pydantic==2.6.3
