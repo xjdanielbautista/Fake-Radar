@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  api-backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fakeradar_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Conexion a la carpeta local con el contenedor.
+      # Si se modifica algo en VS Code, el servidor se reinicia solo sin tener que apagar Docker.
+      - ./backend:/app
+    environment:
+      - ENTORNO=desarrollo
