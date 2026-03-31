@@ -55,6 +55,6 @@ Gracias a los volúmenes de Docker, no necesitas apagar el servidor si haces un 
 ---
 
 ## 📜 Reglas de Desarrollo
-* **Ramas:** Todo desarrollo se hace en ramas tipo `feature/nombre-de-tarea`[cite: 32, 33]. [cite_start]Cero *commits* a `main`[cite: 30].
+* **Ramas:** Todo desarrollo se hace en ramas tipo `feature/nombre-de-tarea`. Cero *commits* a `main`.
 * **Validaciones:** Toda entrada y salida de datos debe estar estrictamente tipada en `models.py` usando Pydantic.
 * **Cero Base de Datos:** No implementaremos ORMs ni conexiones a bases de datos. El sistema opera conectándose directamente a los motores de IA en tiempo real.
