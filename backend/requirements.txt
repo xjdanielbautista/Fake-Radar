@@ -8,3 +8,9 @@ uvicorn==0.27.1
 
 # Pydantic: Para la validación de datos y la creación de modelos de datos.
 pydantic==2.6.3
+
+# Python-Dotenv
+python-dotenv==1.0.1
+
+# Google Generative AI SDK
+google-generativeai==0.8.5
