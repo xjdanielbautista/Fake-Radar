@@ -7,12 +7,13 @@ import json
 # Importacion de modelos y servicio de AI
 from models import AnalyzeRequest, AnalyzeResponse
 from services.ai_service import generate_response
+from services.beto_service import analyze_style
 
 # Se crea la instancia de FastAPI
 app = FastAPI(
     title="Fake Radar API",
     description="API para detección de desinformación. Motor Stateless.",
-    version="1.1.0"
+    version="1.2.0"
 )
 
 # Configuración de CORS: Esto es vital para que el Frontend (React) 
@@ -34,59 +35,58 @@ async def root():
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_news(request: AnalyzeRequest):
 
-    # Se arman las instrucciones (Prompt) obligando a Gemini a respetar la estructura de Pydantic
+    # Se ejecuta el análisis de estilo con BETO (mock por ahora)
+    beto_data = analyze_style(request.text)
+    
+    # Se construye el prompt para gemini, incluyendo el texto de la noticia y las instrucciones claras para el JSON valido
     prompt = f"""
     Eres un experto en detección de desinformación. Analiza la siguiente noticia y devuelve un JSON estricto.
     Noticia: {request.text}
     
     El JSON DEBE tener exactamente esta estructura y usar estas llaves:
     {{
-      "status": "success",
       "global_assessment": "Dudoso",
-      "analysis": {{
-        "style_analysis": {{
-          "engine": "BETO NLP",
-          "fake_probability_score": 50.0,
-          "shap_flags": [
-            {{"word": "ejemplo", "impact_score": 0.5}}
-          ]
-        }},
-        "fact_check_analysis": {{
-          "engine": "Gemini API + Web Search",
-          "verdict": "Requiere verificación",
-          "reasoning": "Escribe aquí tu razonamiento analizando los hechos de la noticia.",
-          "references": [
-            {{"title": "Fuente de ejemplo", "url": "https://ejemplo.com", "domain": "ejemplo.com"}}
-          ]
-        }}
+      "fact_check_analysis": {{
+        "engine": "Gemini API + Web Search",
+        "verdict": "Requiere verificación",
+        "reasoning": "Escribe aquí tu razonamiento analizando los hechos.",
+        "references": [
+          {{"title": "Fuente", "url": "https://ejemplo.com", "domain": "ejemplo.com"}}
+        ]
       }}
     }}
     """
     
-    # Se ejecuta el servicio de IA con el prompt construido. Se espera un texto que sea un JSON, pero si algo falla, se devuelve un diccionario de error.
+    # Se llama a la funcion que se comunica con gemini API
     raw_response = generate_response(prompt)
     
-    # Se maneja el caso de error en la generación de la respuesta. Si el servicio de IA falla, se devuelve un JSON con un mensaje de error en el campo "reasoning" del análisis de hechos.
+    # Validacion y manejo de errores para asegurar que el backend siempre devuelve un JSON con la estructura correcta, incluso si Gemini falla o devuelve algo inesperado.
     if isinstance(raw_response, dict) and "error" in raw_response:
-        return {
-            "status": "error",
+        gemini_data = {
             "global_assessment": "Error en el servidor de IA",
-            "analysis": {
-                "style_analysis": {"engine": "BETO NLP", "fake_probability_score": 0.0, "shap_flags": []},
-                "fact_check_analysis": {"engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []}
+            "fact_check_analysis": {
+                "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
             }
         }
+    else:
+        try:
+            gemini_data = json.loads(raw_response)
+        except json.JSONDecodeError:
+            gemini_data = {
+                "global_assessment": "Error de formato",
+                "fact_check_analysis": {
+                    "engine": "Gemini API", "verdict": "Error", "reasoning": "La IA no devolvió un JSON válido.", "references": []
+                }
+            }
 
-    # Se intenta parsear la respuesta cruda de texto a un diccionario. Si el formato no es correcto, se devuelve un JSON con un mensaje de error en el campo "reasoning" del análisis de hechos.
-    try:
-        parsed_data = json.loads(raw_response)
-        return parsed_data
-    except json.JSONDecodeError:
-        return {
-            "status": "error",
-            "global_assessment": "Error de formato",
-            "analysis": {
-                "style_analysis": {"engine": "BETO NLP", "fake_probability_score": 0.0, "shap_flags": []},
-                "fact_check_analysis": {"engine": "Gemini API", "verdict": "Error", "reasoning": "La IA no devolvió un JSON válido.", "references": []}
-            }
+    # Fusion de los resultados de BETO y gemini en una respuesta final.
+    final_response = {
+        "status": "success",
+        "global_assessment": gemini_data.get("global_assessment", "Desconocido"),
+        "analysis": {
+            "style_analysis": beto_data,
+            "fact_check_analysis": gemini_data.get("fact_check_analysis", {})
         }
+    }
+    
+    return final_response
