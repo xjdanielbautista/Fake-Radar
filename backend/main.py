@@ -1,3 +1,5 @@
+# uvicorn main:app --reload, that's the command to run this backend server in development mode. It will auto-reload on code changes.
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from models import AnalyzeRequest, AnalyzeResponse
