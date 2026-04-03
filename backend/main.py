@@ -77,3 +77,16 @@ async def analyze_news(request: AnalyzeRequest):
     }
     
     return mock_response
+
+@app.get("/gemini-status")
+async def gemini_status(request: Request):
+    """Gemini API endpoint for monitoring."""
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    client_ip = request.client.host
+    gemini_status = "Up" if GEMINI_API_KEY else "Down"
+    
+    logger.info(f"[{timestamp}] | IP: {client_ip} | Gemini: {gemini_status} | Status: OK")
+    if not GEMINI_API_KEY:
+        return {"status": "Error", "message": "GEMINI_API_KEY is not set. Gemini API is down."}
+    return {"status": "OK", "message": "API is operational"}
