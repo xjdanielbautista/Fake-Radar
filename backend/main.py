@@ -1,8 +1,16 @@
 # uvicorn main:app --reload, that's the command to run this backend server in development mode. It will auto-reload on code changes.
 
-from fastapi import FastAPI
+import logging
+import os
+from datetime import datetime
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from models import AnalyzeRequest, AnalyzeResponse
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Se crea la instancia de FastAPI
 app = FastAPI(
