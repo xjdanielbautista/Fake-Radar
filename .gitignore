@@ -10,3 +10,6 @@ __pycache__/
 
 # Variables de entorno (Secretos)
 .env
+
+# Notas de desarrollo
+*devnotes.md
