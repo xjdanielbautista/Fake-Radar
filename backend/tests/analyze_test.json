@@ -1,0 +1,40 @@
+{
+  "name": "analyze_endpoint_smoke_test",
+  "description": "Basic JSON test fixture for POST /analyze.",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8000/analyze",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "text": "ESCANDALO: Se detecto un supuesto fraude electoral en una nota viral.",
+      "source_url": "https://example.com/noticia-viral"
+    }
+  },
+  "expected": {
+    "statusCode": 200,
+    "requiredFields": [
+      "status",
+      "global_assessment",
+      "analysis.style_analysis.engine",
+      "analysis.style_analysis.fake_probability_score",
+      "analysis.style_analysis.shap_flags",
+      "analysis.fact_check_analysis.engine",
+      "analysis.fact_check_analysis.verdict",
+      "analysis.fact_check_analysis.reasoning",
+      "analysis.fact_check_analysis.references"
+    ],
+    "fieldTypes": {
+      "status": "string",
+      "global_assessment": "string",
+      "analysis.style_analysis.engine": "string",
+      "analysis.style_analysis.fake_probability_score": "number",
+      "analysis.style_analysis.shap_flags": "array",
+      "analysis.fact_check_analysis.engine": "string",
+      "analysis.fact_check_analysis.verdict": "string",
+      "analysis.fact_check_analysis.reasoning": "string",
+      "analysis.fact_check_analysis.references": "array"
+    }
+  }
+}
