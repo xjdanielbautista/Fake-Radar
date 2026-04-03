@@ -3,7 +3,7 @@
 import logging
 import os
 from datetime import datetime
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
@@ -14,8 +14,6 @@ from services.beto_service import analyze_style
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Se crea la instancia de FastAPI
 app = FastAPI(
@@ -99,15 +97,21 @@ async def analyze_news(request: AnalyzeRequest):
     
     return final_response
 
+# Health check endpoint para monitoreo y logs de acceso.
 @app.get("/gemini-status")
-async def gemini_status(request: Request):
+async def gemini_status(request: Request, response: Response):
     """Gemini API endpoint for monitoring."""
 
     timestamp = datetime.now().strftime("%H:%M:%S")
     client_ip = request.client.host
-    gemini_status = "Up" if GEMINI_API_KEY else "Down"
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    gemini_status = "Up" if api_key else "Down"
     
-    logger.info(f"[{timestamp}] | IP: {client_ip} | Gemini: {gemini_status} | Status: OK")
-    if not GEMINI_API_KEY:
+    logger.info(f"[{timestamp}] | IP: {client_ip} | Gemini: {gemini_status} | Status: {'OK' if api_key else 'Error'}")
+    
+    if not api_key:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "Error", "message": "GEMINI_API_KEY is not set. Gemini API is down."}
+    
     return {"status": "OK", "message": "API is operational"}
