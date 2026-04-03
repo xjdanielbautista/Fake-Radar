@@ -12,6 +12,8 @@ services:
       # Conexion a la carpeta local con el contenedor.
       # Si se modifica algo en VS Code, el servidor se reinicia solo sin tener que apagar Docker.
       - ./backend:/app
+    env_file:
+      - .env
     environment:
       - ENTORNO=desarrollo
       - GEMINI_API_KEY=${GEMINI_API_KEY}
