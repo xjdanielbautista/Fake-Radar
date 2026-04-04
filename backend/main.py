@@ -67,14 +67,18 @@ async def analyze_news(request: AnalyzeRequest):
     raw_response = generate_response(prompt)
     
     # Validacion y manejo de errores para asegurar que el backend siempre devuelve un JSON con la estructura correcta, incluso si Gemini falla o devuelve algo inesperado.
-    if isinstance(raw_response, dict) and "error" in raw_response:
-        gemini_data = {
-            "global_assessment": "Error en el servidor de IA",
-            "fact_check_analysis": {
-                "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
+    if isinstance(raw_response, dict):
+        if "error" in raw_response:
+            gemini_data = {
+                "global_assessment": "Error en el servidor de IA",
+                "fact_check_analysis": {
+                    "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
+                }
             }
-        }
-    else:
+        else:
+            # generate_response returned a dict directly — use it as-is
+            gemini_data = raw_response
+    elif isinstance(raw_response, str):
         try:
             gemini_data = json.loads(raw_response)
         except json.JSONDecodeError:
@@ -84,6 +88,14 @@ async def analyze_news(request: AnalyzeRequest):
                     "engine": "Gemini API", "verdict": "Error", "reasoning": "La IA no devolvió un JSON válido.", "references": []
                 }
             }
+    else:
+        # None or unexpected type
+        gemini_data = {
+            "global_assessment": "Error en el servidor de IA",
+            "fact_check_analysis": {
+                "engine": "Gemini API", "verdict": "Error", "reasoning": f"Tipo de respuesta inesperado: {type(raw_response)}", "references": []
+            }
+        }
 
     # Fusion de los resultados de BETO y gemini en una respuesta final.
     final_response = {
