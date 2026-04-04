@@ -46,22 +46,33 @@ async def analyze_news(request: AnalyzeRequest):
     
     # Se construye el prompt para gemini, incluyendo el texto de la noticia y las instrucciones claras para el JSON valido
     prompt = f"""
-    Eres un experto en detección de desinformación. Analiza la siguiente noticia y devuelve un JSON estricto.
-    Noticia: {request.text}
-    
-    El JSON DEBE tener exactamente esta estructura y usar estas llaves:
-    {{
-      "global_assessment": "Dudoso",
-      "fact_check_analysis": {{
-        "engine": "Gemini API + Web Search",
-        "verdict": "Requiere verificación",
-        "reasoning": "Escribe aquí tu razonamiento analizando los hechos.",
-        "references": [
-          {{"title": "Fuente", "url": "https://ejemplo.com", "domain": "ejemplo.com"}}
-        ]
-      }}
-    }}
-    """
+        Eres un experto en detección de desinformación y fact-checking periodístico.
+
+        Analiza la siguiente noticia y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin bloques de código markdown.
+
+        NOTICIA:
+        {request.text}
+
+        INSTRUCCIONES:
+        - global_assessment debe ser exactamente uno de: "Verdadero", "Dudoso", "Falso"
+        - verdict debe ser exactamente uno de: "Verificado", "Falso", "Engañoso", "Requiere verificación", "No verificable"
+        - reasoning debe explicar: qué afirmaciones concretas hace la noticia, qué evidencia existe a favor o en contra, y por qué se asignó ese veredicto
+        - references debe incluir fuentes reales y relevantes que respalden el análisis (mínimo 1, máximo 5)
+        - Si no encuentras fuentes confiables, usa una lista vacía en references
+
+        ESTRUCTURA JSON REQUERIDA:
+        {{
+        "global_assessment": "<valor>",
+        "fact_check_analysis": {{
+            "engine": "Gemini API",
+            "verdict": "<valor>",
+            "reasoning": "<análisis detallado>",
+            "references": [
+            {{"title": "<título de la fuente>", "url": "<url>", "domain": "<dominio>"}}
+            ]
+        }}
+        }}
+        """
     
     # Se llama a la funcion que se comunica con gemini API
     raw_response = generate_response(prompt)
