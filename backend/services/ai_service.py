@@ -22,7 +22,3 @@ def generate_response(prompt):
     except Exception as e:
         logger.error(f"Error generating response: {e}")
         return {"error": "Failed to generate response."}
-    
-
-# Early test to see if Gemini API is working correctly.
-# print(generate_response("¿Cuál es la capital de Francia?"))

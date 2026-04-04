@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Fake Radar API",
     description="API para detección de desinformación. Motor Stateless.",
-    version="1.2.0"
+    version="1.2.1"
 )
 
 # Configuración de CORS: Esto es vital para que el Frontend (React) 
@@ -46,35 +46,50 @@ async def analyze_news(request: AnalyzeRequest):
     
     # Se construye el prompt para gemini, incluyendo el texto de la noticia y las instrucciones claras para el JSON valido
     prompt = f"""
-    Eres un experto en detección de desinformación. Analiza la siguiente noticia y devuelve un JSON estricto.
-    Noticia: {request.text}
-    
-    El JSON DEBE tener exactamente esta estructura y usar estas llaves:
-    {{
-      "global_assessment": "Dudoso",
-      "fact_check_analysis": {{
-        "engine": "Gemini API + Web Search",
-        "verdict": "Requiere verificación",
-        "reasoning": "Escribe aquí tu razonamiento analizando los hechos.",
-        "references": [
-          {{"title": "Fuente", "url": "https://ejemplo.com", "domain": "ejemplo.com"}}
-        ]
-      }}
-    }}
-    """
+        Eres un experto en detección de desinformación y fact-checking periodístico.
+
+        Analiza la siguiente noticia y responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin bloques de código markdown.
+
+        NOTICIA:
+        {request.text}
+
+        INSTRUCCIONES:
+        - global_assessment debe ser exactamente uno de: "Verdadero", "Dudoso", "Falso"
+        - verdict debe ser exactamente uno de: "Verificado", "Falso", "Engañoso", "Requiere verificación", "No verificable"
+        - reasoning debe explicar: qué afirmaciones concretas hace la noticia, qué evidencia existe a favor o en contra, y por qué se asignó ese veredicto
+        - references debe incluir fuentes reales y relevantes que respalden el análisis (mínimo 1, máximo 5)
+        - Si no encuentras fuentes confiables, usa una lista vacía en references
+
+        ESTRUCTURA JSON REQUERIDA:
+        {{
+        "global_assessment": "<valor>",
+        "fact_check_analysis": {{
+            "engine": "Gemini API",
+            "verdict": "<valor>",
+            "reasoning": "<análisis detallado>",
+            "references": [
+            {{"title": "<título de la fuente>", "url": "<url>", "domain": "<dominio>"}}
+            ]
+        }}
+        }}
+        """
     
     # Se llama a la funcion que se comunica con gemini API
     raw_response = generate_response(prompt)
     
     # Validacion y manejo de errores para asegurar que el backend siempre devuelve un JSON con la estructura correcta, incluso si Gemini falla o devuelve algo inesperado.
-    if isinstance(raw_response, dict) and "error" in raw_response:
-        gemini_data = {
-            "global_assessment": "Error en el servidor de IA",
-            "fact_check_analysis": {
-                "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
+    if isinstance(raw_response, dict):
+        if "error" in raw_response:
+            gemini_data = {
+                "global_assessment": "Error en el servidor de IA",
+                "fact_check_analysis": {
+                    "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
+                }
             }
-        }
-    else:
+        else:
+            # generate_response returned a dict directly — use it as-is
+            gemini_data = raw_response
+    elif isinstance(raw_response, str):
         try:
             gemini_data = json.loads(raw_response)
         except json.JSONDecodeError:
@@ -84,6 +99,14 @@ async def analyze_news(request: AnalyzeRequest):
                     "engine": "Gemini API", "verdict": "Error", "reasoning": "La IA no devolvió un JSON válido.", "references": []
                 }
             }
+    else:
+        # None or unexpected type
+        gemini_data = {
+            "global_assessment": "Error en el servidor de IA",
+            "fact_check_analysis": {
+                "engine": "Gemini API", "verdict": "Error", "reasoning": f"Tipo de respuesta inesperado: {type(raw_response)}", "references": []
+            }
+        }
 
     # Fusion de los resultados de BETO y gemini en una respuesta final.
     final_response = {
