@@ -37,9 +37,79 @@ app.add_middleware(
 async def root():
     return {"message": "El backend de Fake Radar esta en linea."}
 
+
+def _recover_common_broken_json(body_text: str):
+    """Recover common malformed JSON where `text` contains unescaped quotes."""
+    with_source_url = re.match(
+        r'^\s*\{\s*"text"\s*:\s*"(.*)"\s*,\s*"source_url"\s*:\s*"([^\"]*)"\s*\}\s*$',
+        body_text,
+        re.DOTALL,
+    )
+    if with_source_url:
+        return {
+            "text": with_source_url.group(1),
+            "source_url": with_source_url.group(2),
+        }
+
+    text_only = re.match(
+        r'^\s*\{\s*"text"\s*:\s*"(.*)"\s*\}\s*$',
+        body_text,
+        re.DOTALL,
+    )
+    if text_only:
+        return {"text": text_only.group(1)}
+
+    return None
+
+def _parse_analyze_request(raw_body: bytes, content_type: str) -> AnalyzeRequest:
+    body_text = raw_body.decode("utf-8", errors="replace")
+
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(body_text)
+        except json.JSONDecodeError:
+            payload = _recover_common_broken_json(body_text)
+            if payload is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        "Invalid JSON body. If text contains quotes, send valid JSON "
+                        "(escape with \") or let your client use JSON.stringify."
+                    ),
+                )
+
+        if isinstance(payload, str):
+            return AnalyzeRequest(text=payload)
+
+        if not isinstance(payload, dict):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Body must be a JSON object with at least the `text` field.",
+            )
+
+        try:
+            return AnalyzeRequest(**payload)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid payload: {exc}",
+            ) from exc
+
+    # Fallback: allow plain text body for easier copy/paste integrations.
+    text = body_text.strip("\ufeff").strip()
+    if not text:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Request body is empty.",
+        )
+    return AnalyzeRequest(text=text)
+
 # EL ENDPOINT PRINCIPAL: /analyze
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_news(request: AnalyzeRequest):
+    raw_body = await http_request.body()
+    content_type = (http_request.headers.get("content-type") or "").lower()
+    request = _parse_analyze_request(raw_body, content_type)
 
     # Se ejecuta el análisis de estilo con BETO (mock por ahora)
     beto_data = analyze_style(request.text)
