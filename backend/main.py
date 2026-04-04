@@ -3,7 +3,8 @@
 import logging
 import os
 from datetime import datetime
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
+import re
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
@@ -21,6 +22,28 @@ app = FastAPI(
     description="API para detección de desinformación. Motor Stateless.",
     version="1.2.0"
 )
+
+ANALYZE_REQUEST_BODY_DOC = {
+    "required": True,
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "El texto de la noticia a analizar",
+                    },
+                    "source_url": {
+                        "type": "string",
+                        "description": "URL opcional de la noticia",
+                    },
+                },
+            },
+        }
+    },
+}
 
 # Configuración de CORS: Esto es vital para que el Frontend (React) 
 # y la extension de Chrome puedan hablar con este backend sin que el navegador los bloquee.
@@ -105,8 +128,13 @@ def _parse_analyze_request(raw_body: bytes, content_type: str) -> AnalyzeRequest
     return AnalyzeRequest(text=text)
 
 # EL ENDPOINT PRINCIPAL: /analyze
-@app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_news(request: AnalyzeRequest):
+@app.post(
+    "/analyze",
+    response_model=AnalyzeResponse,
+    openapi_extra={"requestBody": ANALYZE_REQUEST_BODY_DOC},
+)
+
+async def analyze_news(http_request: Request):
     raw_body = await http_request.body()
     content_type = (http_request.headers.get("content-type") or "").lower()
     request = _parse_analyze_request(raw_body, content_type)
