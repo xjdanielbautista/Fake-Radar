@@ -4,58 +4,48 @@ document.addEventListener('DOMContentLoaded', () => {
   const semaforo = document.getElementById("semaforo");
   const resumen = document.getElementById("resumen");
 
-  // 1. Leemos lo que guardó el background.js
-  chrome.storage.local.get(["ultimoTexto", "ultimaUrl"], async (result) => {
-    if (result.ultimoTexto) {
-      
-      // Mostramos estado de carga
-      semaforo.className = "status gris"; 
-      semaforo.style.backgroundColor = "#9ca3af"; // Color gris temporal
-      semaforo.innerText = "ANALIZANDO...";
-      resumen.innerText = "Conectando con el motor de IA. Por favor espera...";
-
-      try {
-        // 2. CONEXIÓN CON EL BACKEND (main.py)
-        const response = await fetch("http://localhost:8000/analyze", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          // Mandamos el JSON tal cual lo pide AnalyzeRequest en models.py
-          body: JSON.stringify({
-            text: result.ultimoTexto,
-            source_url: result.ultimaUrl
-          })
-        });
-
-        if (!response.ok) throw new Error("Error en el servidor");
-
-        // 3. RECIBIMOS LA RESPUESTA DE LA IA 
-        const data = await response.json();
-
-        // 4. PINTAMOS LOS RESULTADOS SEGÚN EL JSON DE models.py (AnalyzeResponse)
-        semaforo.innerText = "VEREDICTO: " + data.global_assessment.toUpperCase();
-
-        
-        if (data.global_assessment === "Falso") {
-          semaforo.style.backgroundColor = "#ff4d4d"; // Rojo
-        } else if (data.global_assessment === "Verdadero") {
-          semaforo.style.backgroundColor = "#2ecc71"; // Verde
-        } else {
-          semaforo.style.backgroundColor = "#f1c40f"; // Amarillo para Dudoso
-        }
-
-        // Mostramos el razonamiento del fact_check_analysis
-        resumen.innerText = data.analysis.fact_check_analysis.reasoning;
-
-      } catch (error) {
-        semaforo.innerText = "ERROR DE CONEXIÓN";
-        semaforo.style.backgroundColor = "#333";
-        resumen.innerText = "Asegúrate de que Docker esté corriendo y el backend encendido (localhost:8000).";
-        console.error(error);
-      }
-    } else {
-      resumen.innerText = "Selecciona un texto, da clic derecho y presiona 'Analizar con Fake Radar'.";
+  // Funcion que pinta la pantalla segun el estado del storage
+  const actualizarInterfaz = (result) => {
+    if (!result.estado) {
+        resumen.innerText = "Selecciona un texto, da clic derecho y presiona 'Analizar con Fake Radar'.";
+        return;
     }
-  });
+
+    if (result.estado === "cargando") {
+        semaforo.style.backgroundColor = "#9ca3af";
+        semaforo.innerText = "ANALIZANDO...";
+        resumen.innerText = "El motor de IA está trabajando en segundo plano...";
+    } 
+    
+    else if (result.estado === "error") {
+        semaforo.style.backgroundColor = "#333";
+        semaforo.innerText = "ERROR DE CONEXIÓN";
+        resumen.innerText = "Asegúrate de que Docker esté corriendo (localhost:8000).";
+    } 
+    
+    else if (result.estado === "completado" && result.resultado) {
+        const data = result.resultado;
+        semaforo.innerText = "VEREDICTO: " + data.global_assessment.toUpperCase();
+    
+        if (data.global_assessment === "Falso") {
+            semaforo.style.backgroundColor = "#ff4d4d";
+        } else if (data.global_assessment === "Verdadero") {
+            semaforo.style.backgroundColor = "#2ecc71";
+        } else {
+            semaforo.style.backgroundColor = "#f1c40f";
+        }
+    
+        resumen.innerText = data.analysis.fact_check_analysis.reasoning;
+    }
+  };
+  
+  // Se lee el estado actual al abrir el popup
+  chrome.storage.local.get(["estado", "resultado"], actualizarInterfaz);
+
+  // Se escucha cualquier cambio en vivo (Si el usuario abre el popup MIENTRAS siguie cargando)
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local") {
+      chrome.storage.local.get(["estado", "resultado"], actualizarInterfaz);
+    }
+  })
 });
