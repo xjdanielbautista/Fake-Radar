@@ -71,9 +71,8 @@ export default function Dashboard() {
       setData(response);
         } catch (err) {
       console.error("Error al analizar:", err);
-      setData(null);
       setError(
-        "ERROR AL ANALIZAR LA NOTICIA."
+        "No se pudo conectar con el servidor. Mostrando último análisis disponible."
       );
     } finally {
       setLoading(false);
