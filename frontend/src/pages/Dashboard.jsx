@@ -13,9 +13,7 @@ export default function Dashboard() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [geminiService, setGeminiService] = useState("Verificando...");
-  const [currentText, setCurrentText] = useState(
-    "¡ESCÁNDALO! Se filtra documento secreto donde el presidente del INE admite fraude electoral para las próximas elecciones de Baja California. ¡Difunde antes de que lo censuren!"
-  );
+ const [currentText, setCurrentText] = useState("");
 
   useEffect(() => {
     const checkGemini = async () => {
@@ -23,7 +21,7 @@ export default function Dashboard() {
         const status = await getGeminiStatus();
         setGeminiService(status.status || "OK");
       } catch {
-        setGeminiService("No disponible");
+        setGeminiService("NO DISPONIBLE");
       }
     };
 
@@ -34,10 +32,11 @@ export default function Dashboard() {
 
         const response = await analyzeNews(currentText);
         setData(response);
-      } catch (err) {
+            } catch (err) {
         console.error("Error inicial:", err);
+        setData(null);
         setError(
-          "No se pudo conectar con el backend o el análisis falló. Verifica que FastAPI esté corriendo en http://localhost:8000."
+          "EL ANALISIS INICIAL FALLÓ. INTENTAR DE NUEVO O ANALIZAR OTRO TEXTO."
         );
       } finally {
         setInitialLoading(false);
@@ -45,7 +44,8 @@ export default function Dashboard() {
     };
 
     checkGemini();
-    fetchInitialAnalysis();
+    //fetchInitialAnalysis();
+    setInitialLoading(false);
   }, []);
 
   const handleAnalyze = async (text) => {
@@ -59,12 +59,20 @@ export default function Dashboard() {
       const response = await analyzeNews(text);
 
       console.log("Respuesta backend:", response);
+      if (
+  response?.global_assessment?.toLowerCase().includes("error") ||
+  response?.analysis?.fact_check_analysis?.reasoning?.toLowerCase().includes("failed")
+) {
+  setData(null);
+  setError("ERRO AL ANALIZAR LA NOTICIA. INTENTAR DE NUEVO O ANALIZAR OTRO TEXTO.");
+  return;
+}
 
       setData(response);
-    } catch (err) {
+        } catch (err) {
       console.error("Error al analizar:", err);
       setError(
-        "Ocurrió un error al analizar la noticia. Revisa que el backend siga activo e inténtalo de nuevo."
+        "No se pudo conectar con el servidor. Mostrando último análisis disponible."
       );
     } finally {
       setLoading(false);

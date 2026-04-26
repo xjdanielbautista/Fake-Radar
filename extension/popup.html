@@ -1,55 +1,75 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            width: 300px;
-            padding: 15px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .status {
-            padding: 12px;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-            border-radius: 8px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        #resumen {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #2c3e50;
-            border-left: 4px solid #3498db;
-        }
-        .header {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 5px;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #050505;
+      color: #ffffff;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .header {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      text-align: left;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #a78bfa;
+      margin-top: -10px;
+    }
+
+    .status {
+      padding: 14px;
+      color: white;
+      text-align: center;
+      font-weight: 800;
+      border-radius: 14px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #9333ea, #c026d3);
+      box-shadow: 0 8px 20px rgba(147, 51, 234, 0.25);
+    }
+
+    #resumen {
+      background: #0b0b0b;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e5e7eb;
+      border: 1px solid #242424;
+      border-left: 4px solid #a855f7;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">FAKE RADAR - ANÁLISIS IA</div>
-        <div id="semaforo" class="status" style="background-color: #9ca3af;">
-            ESPERANDO...
-        </div>
-        <div id="resumen">
-            Selecciona un texto en cualquier noticia, dale clic derecho y elige "Analizar con Fake Radar".
-        </div>
+  <div class="container">
+    <div class="header">Fake Radar</div>
+    <div class="subtitle">Análisis rápido de veracidad</div>
+
+    <div id="semaforo" class="status">
+      ESPERANDO...
     </div>
-    <script src="popup.js"></script>
+
+    <div id="resumen">
+      Selecciona un texto en cualquier noticia, da clic derecho y elige “Analizar con Fake Radar”.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
 </body>
 </html>

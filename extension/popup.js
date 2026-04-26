@@ -1,51 +1,75 @@
 // popup.js
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   const semaforo = document.getElementById("semaforo");
   const resumen = document.getElementById("resumen");
 
-  // Funcion que pinta la pantalla segun el estado del storage
+  // Función que pinta la pantalla según el estado guardado
   const actualizarInterfaz = (result) => {
     if (!result.estado) {
-        resumen.innerText = "Selecciona un texto, da clic derecho y presiona 'Analizar con Fake Radar'.";
-        return;
+      semaforo.style.background = "linear-gradient(135deg, #9333ea, #c026d3)";
+      semaforo.innerText = "ESPERANDO...";
+      resumen.innerText =
+        "Selecciona un texto, da clic derecho y elige “Analizar con Fake Radar”.";
+      return;
     }
 
     if (result.estado === "cargando") {
-        semaforo.style.backgroundColor = "#9ca3af";
-        semaforo.innerText = "ANALIZANDO...";
-        resumen.innerText = "El motor de IA está trabajando en segundo plano...";
-    } 
-    
-    else if (result.estado === "error") {
-        semaforo.style.backgroundColor = "#333";
-        semaforo.innerText = "ERROR DE CONEXIÓN";
-        resumen.innerText = "Asegúrate de que Docker esté corriendo (localhost:8000).";
-    } 
-    
-    else if (result.estado === "completado" && result.resultado) {
-        const data = result.resultado;
-        semaforo.innerText = "VEREDICTO: " + data.global_assessment.toUpperCase();
-    
-        if (data.global_assessment === "Falso") {
-            semaforo.style.backgroundColor = "#ff4d4d";
-        } else if (data.global_assessment === "Verdadero") {
-            semaforo.style.backgroundColor = "#2ecc71";
-        } else {
-            semaforo.style.backgroundColor = "#f1c40f";
-        }
-    
-        resumen.innerText = data.analysis.fact_check_analysis.reasoning;
+      semaforo.style.background = "linear-gradient(135deg, #64748b, #475569)";
+      semaforo.innerText = "ANALIZANDO...";
+      resumen.innerText =
+        "Estamos revisando la noticia. Esto puede tardar unos segundos.";
+      return;
+    }
+
+    if (result.estado === "error") {
+      semaforo.style.background = "linear-gradient(135deg, #ef4444, #991b1b)";
+      semaforo.innerText = "NO SE PUDO ANALIZAR";
+      resumen.innerText =
+        "Ocurrió un problema al procesar la noticia. Intenta nuevamente en unos momentos.";
+      return;
+    }
+
+    if (result.estado === "completado" && result.resultado) {
+      const data = result.resultado;
+
+      const verdict = data.global_assessment || "Desconocido";
+      const reasoning =
+        data.analysis?.fact_check_analysis?.reasoning ||
+        "No se recibió una explicación del análisis.";
+
+      if (
+        verdict.toLowerCase().includes("error") ||
+        reasoning.toLowerCase().includes("failed")
+      ) {
+        semaforo.style.background = "linear-gradient(135deg, #ef4444, #991b1b)";
+        semaforo.innerText = "NO SE PUDO ANALIZAR";
+        resumen.innerText =
+          "El análisis no se pudo completar. Intenta nuevamente o prueba con otro texto.";
+        return;
+      }
+
+      semaforo.innerText = "VEREDICTO: " + verdict.toUpperCase();
+
+      if (verdict === "Falso") {
+        semaforo.style.background = "linear-gradient(135deg, #ef4444, #b91c1c)";
+      } else if (verdict === "Verdadero") {
+        semaforo.style.background = "linear-gradient(135deg, #22c55e, #15803d)";
+      } else {
+        semaforo.style.background = "linear-gradient(135deg, #f59e0b, #b45309)";
+      }
+
+      resumen.innerText = reasoning;
     }
   };
-  
+
   // Se lee el estado actual al abrir el popup
   chrome.storage.local.get(["estado", "resultado"], actualizarInterfaz);
 
-  // Se escucha cualquier cambio en vivo (Si el usuario abre el popup MIENTRAS siguie cargando)
+  // Se escucha cualquier cambio en vivo
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === "local") {
       chrome.storage.local.get(["estado", "resultado"], actualizarInterfaz);
     }
-  })
+  });
 });
