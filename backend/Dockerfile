@@ -8,8 +8,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Se instalan las librerias sin guardar archivos basura en cache
-RUN pip install --no-cache-dir -r requirements.txt
-
+RUN pip install --no-cache-dir -r requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+    
 # Se copea todo el codigo (main.py, models.py) al contenedor
 COPY . .
 
