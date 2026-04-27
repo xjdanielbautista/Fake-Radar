@@ -2,22 +2,24 @@ import { useState } from "react";
 
 export default function NewsInput({ defaultText = "", onAnalyze, loading }) {
   const [text, setText] = useState(defaultText);
+  const [sourceUrl, setSourceUrl] = useState("");
 
   const handleSubmit = (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const cleanText = text.trim();
+    const cleanText = text.trim();
+    const cleanUrl = sourceUrl.trim();
 
-  console.log("Botón presionado");
-  console.log("Texto enviado:", cleanText);
+    console.log("Botón presionado");
+    console.log("Texto enviado:", cleanText);
+    console.log("URL enviada:", cleanUrl);
 
-  if (!cleanText) {
-    console.log("No hay texto");
-    return;
-  }
-
-  onAnalyze(cleanText);
-};
+    if (!cleanText) {
+      console.log("No hay texto");
+      return;
+    }
+    onAnalyze(cleanText, cleanUrl);
+  };
 
   return (
     <section className="test-text-card input-section">
@@ -33,6 +35,14 @@ export default function NewsInput({ defaultText = "", onAnalyze, loading }) {
           onChange={(e) => setText(e.target.value)}
           placeholder="Ejemplo: Se filtra documento donde..."
           rows={8}
+        />
+
+        <input
+          type="url"
+          className="news-input-url"
+          value={sourceUrl}
+          onChange={(e) => setSourceUrl(e.target.value)}
+          placeholder="URL de la fuente (opcional)"
         />
 
         <div className="news-form-actions">

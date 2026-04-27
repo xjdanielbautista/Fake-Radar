@@ -10,7 +10,6 @@ import { analyzeNews, getGeminiStatus } from "../services/api";
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [geminiService, setGeminiService] = useState("Verificando...");
  const [currentText, setCurrentText] = useState("");
@@ -23,40 +22,20 @@ export default function Dashboard() {
       } catch {
         setGeminiService("NO DISPONIBLE");
       }
-    };
-
-    const fetchInitialAnalysis = async () => {
-      try {
-        setInitialLoading(true);
-        setError("");
-
-        const response = await analyzeNews(currentText);
-        setData(response);
-            } catch (err) {
-        console.error("Error inicial:", err);
-        setData(null);
-        setError(
-          "EL ANALISIS INICIAL FALLÓ. INTENTAR DE NUEVO O ANALIZAR OTRO TEXTO."
-        );
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-
+    }
     checkGemini();
-    //fetchInitialAnalysis();
-    setInitialLoading(false);
   }, []);
 
-  const handleAnalyze = async (text) => {
+  const handleAnalyze = async (text, url) => {
     try {
       console.log("Analizando texto:", text);
+      console.log("URL de la fuente:", url);
 
       setLoading(true);
       setError("");
       setCurrentText(text);
 
-      const response = await analyzeNews(text);
+      const response = await analyzeNews(text, url);
 
       console.log("Respuesta backend:", response);
       if (
@@ -64,7 +43,7 @@ export default function Dashboard() {
   response?.analysis?.fact_check_analysis?.reasoning?.toLowerCase().includes("failed")
 ) {
   setData(null);
-  setError("ERRO AL ANALIZAR LA NOTICIA. INTENTAR DE NUEVO O ANALIZAR OTRO TEXTO.");
+  setError("ERROR AL ANALIZAR LA NOTICIA. INTENTAR DE NUEVO O ANALIZAR OTRO TEXTO.");
   return;
 }
 
@@ -105,38 +84,27 @@ export default function Dashboard() {
           loading={loading}
         />
 
-        {initialLoading ? (
-          <LoadingState />
-        ) : error && !data ? (
-          <ErrorState message={error} />
-        ) : (
+        {loading && <LoadingState />}
+        {error && <ErrorState message={error} />}
+        {!loading && !error && data && (
           <>
-            {loading && <LoadingState />}
+            <section className="dashboard-grid">
+              <GaugeChart score={score} />
+              <AnalysisSummary
+                verdict={verdict}
+                reasoning={reasoning}
+                score={score}
+                engine={engine}
+                geminiService={geminiService}
+              />
+            </section>
 
-            {error && <ErrorState message={error} />}
+            <section className="test-text-card">
+              <h2 className="test-text-title">Texto analizado</h2>
+              <p className="test-text-content">{currentText}</p>
+            </section>
 
-            {!loading && (
-              <>
-                <section className="dashboard-grid">
-                  <GaugeChart score={score} />
-
-                  <AnalysisSummary
-                    verdict={verdict}
-                    reasoning={reasoning}
-                    score={score}
-                    engine={engine}
-                    geminiService={geminiService}
-                  />
-                </section>
-
-                <section className="test-text-card">
-                  <h2 className="test-text-title">Texto analizado</h2>
-                  <p className="test-text-content">{currentText}</p>
-                </section>
-
-                <ReferenceList references={references} />
-              </>
-            )}
+            <ReferenceList references={references} />
           </>
         )}
       </div>
