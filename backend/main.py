@@ -41,7 +41,7 @@ async def root():
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_news(request: AnalyzeRequest):
 
-    # Se ejecuta el análisis de estilo con BETO (mock por ahora)
+    # Se ejecuta el análisis de estilo con BETO
     beto_data = analyze_style(request.text)
     
     # Se construye el prompt para gemini, incluyendo el texto de la noticia y las instrucciones claras para el JSON valido
