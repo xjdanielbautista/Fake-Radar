@@ -6,10 +6,10 @@ import {
 } from "recharts";
 
 function getScoreColor(score) {
-  if (score <= 25) return "#16a34a";
-  if (score <= 50) return "#eab308";
-  if (score <= 75) return "#f97316";
-  return "#dc2626";
+  if (score <= 25) return "var(--risk-low)";
+  if (score <= 50) return "var(--risk-mid)";
+  if (score <= 75) return "var(--risk-high)";
+  return "var(--risk-very-high)";
 }
 
 function getScoreLabel(score) {
