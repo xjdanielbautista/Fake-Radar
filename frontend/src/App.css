@@ -502,6 +502,29 @@ body {
   color: var(--text-soft);
 }
 
+.news-input-url {
+  width: 100%;
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  font-family: inherit;
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.news-input-url:focus {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.news-input-url::placeholder {
+  color: var(--text-soft);
+}
+
 .news-form-actions {
   display: flex;
   justify-content: flex-end;

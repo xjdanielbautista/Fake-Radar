@@ -11,7 +11,6 @@ Este módulo contiene el cliente de navegador para el sistema **Fake Radar**, de
 
 ## ✅ Cumplimiento de Requerimientos Técnicos
 
-Según el *Documento de Alineación Técnica y Operativa*, este módulo cumple con:
 1.  **Extracción de Datos**: Captura exclusivamente texto plano de titulares y cuerpos de noticias.
 2.  **Semáforo de Veracidad**: Consume el campo `global_assessment` para determinar el color del indicador (Rojo para "Falso").
 3.  **Resumen Ejecutivo**: Muestra el `reasoning` del motor de hechos (Gemini API) para ofrecer una explicación rápida al usuario.
