@@ -13,7 +13,7 @@ pydantic==2.6.3
 python-dotenv==1.0.1
 
 # Google Generative AI SDK
-google-generativeai==0.8.5
+google-genai
 
 # Librerias para análisis de estilo con BETO
 transformers==5.0.0
