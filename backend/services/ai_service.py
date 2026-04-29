@@ -49,7 +49,33 @@ def generate_response(prompt):
         logger.info(f"Respuesta cruda de Gemini (primeros 300 chars): {raw_text[:300]}")
 
         # Limpiar y extraer el JSON antes de devolver
-        return _extract_json(raw_text)
+        parsed = _extract_json(raw_text)
+
+        # Extraer referencias reales desde grounding_metadata
+        real_references = []
+        try:
+            chunks = response.candidates[0].grounding_metadata.grounding_chunks
+            for chunk in chunks:
+                web = chunk.web
+                if web and web.uri:
+                    from urllib.parse import urlparse
+                    domain = urlparse(web.uri).netloc
+                    real_references.append({
+                        "title": web.title or domain,
+                        "url": web.uri,
+                        "domain": domain
+                    })
+        except Exception as meta_err:
+            logger.warning(f"No se pudo extraer grounding_metadata: {meta_err}")
+
+        # Sobrescribir referencias inventadas con las reales
+        try:
+            import json
+            data = json.loads(parsed)
+            data["fact_check_analysis"]["references"] = real_references[:5]
+            return json.dumps(data, ensure_ascii=False)
+        except Exception:
+            return parsed
 
     except Exception as e:
         logger.error(f"Error generating response: {e}")

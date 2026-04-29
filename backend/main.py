@@ -58,15 +58,14 @@ async def analyze_news(request: AnalyzeRequest):
     - Devuelve la respuesta en formato JSON sin ningún marcador Markdown como ```json.
     - NO incluyas texto antes ni después del JSON.
     - NO uses markdown, bloques de código ni ningún otro formato.
-    - El campo "references" debe contener únicamente los enlaces reales que consultaste durante la búsqueda web, no inventes URLs.
-    - Si no encuentras fuentes reales, devuelve "references" como lista vacía [].
+    - El campo "references" debe ser siempre una lista vacía []. Las referencias reales se inyectarán automáticamente desde el grounding metadata.
     - Si no puedes cumplir el formato, responde con un JSON válido con valores por defecto.
 
     REGLAS DE VALORES:
     - global_assessment: "Verdadero" | "Dudoso" | "Falso"
     - verdict: "Verificado" | "Falso" | "Engañoso" | "Requiere verificación" | "No verificable"
     - reasoning: resumen de 2-3 líneas explicando por qué tomaste esa decisión, basado en lo que encontraste en la web
-    - references: lista de máximo 5 fuentes reales consultadas durante la búsqueda, o []
+    - references: [] (siempre vacío, no incluyas URLs aquí)
 
     FORMATO OBLIGATORIO (responde SOLO esto, sin ningún texto adicional):
     {{
@@ -75,13 +74,7 @@ async def analyze_news(request: AnalyzeRequest):
         "engine": "Gemini API + Web Search",
         "verdict": "Falso",
         "reasoning": "Explicación basada en los resultados de búsqueda web aquí",
-        "references": [
-          {{
-            "title": "Título de la fuente real consultada",
-            "url": "https://url-real-consultada.com/articulo",
-            "domain": "url-real-consultada.com"
-          }}
-        ]
+        "references": []
       }}
     }}
     """
