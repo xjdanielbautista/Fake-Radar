@@ -16,3 +16,6 @@ __pycache__/
 
 # Modelo BETO
 beto_fakenews_model/
+
+# Modelo V5
+fake_radar_v5/
