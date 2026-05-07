@@ -72,37 +72,37 @@ async def analyze_news(request: AnalyzeRequest):
         )
 
     prompt = f"""
-Eres un sistema experto en detección de desinformación y fact-checking periodístico.
-Tu tono es objetivo, frío y analítico. No emitas opiniones personales.
+        Eres un sistema experto en detección de desinformación y fact-checking periodístico.
+        Tu tono es objetivo, frío y analítico. No emitas opiniones personales.
 
-Analiza la siguiente noticia utilizando los resultados de búsqueda web que tienes disponibles:
+        Analiza la siguiente noticia utilizando los resultados de búsqueda web que tienes disponibles:
 
-{request.text}
-{fake_score_context}
+        {request.text}
+        {fake_score_context}
 
-INSTRUCCIONES OBLIGATORIAS:
-- Usa los resultados de la búsqueda web para contrastar y verificar la noticia.
-- Devuelve la respuesta en formato JSON sin ningún marcador Markdown como ```json.
-- NO incluyas texto antes ni después del JSON.
-- El campo "references" debe ser siempre una lista vacía []. Las referencias reales se inyectan automáticamente desde el grounding metadata.
+        INSTRUCCIONES OBLIGATORIAS:
+        - Usa los resultados de la búsqueda web para contrastar y verificar la noticia.
+        - Devuelve la respuesta en formato JSON sin ningún marcador Markdown como ```json.
+        - NO incluyas texto antes ni después del JSON.
+        - El campo "references" debe ser siempre una lista vacía []. Las referencias reales se inyectan automáticamente desde el grounding metadata.
 
-REGLAS DE VALORES:
-- global_assessment: "Verdadero" | "Dudoso" | "Falso"
-- verdict: "Verificado" | "Falso" | "Engañoso" | "Requiere verificación" | "No verificable"
-- reasoning: 2-3 líneas explicando la decisión basada en lo encontrado en la web.
-- references: [] (siempre vacío)
+        REGLAS DE VALORES:
+        - global_assessment: "Verdadero" | "Dudoso" | "Falso"
+        - verdict: "Verificado" | "Falso" | "Engañoso" | "Requiere verificación" | "No verificable"
+        - reasoning: 2-3 líneas explicando la decisión basada en lo encontrado en la web.
+        - references: [] (siempre vacío)
 
-FORMATO OBLIGATORIO (responde SOLO esto):
-{{
-  "global_assessment": "Falso",
-  "fact_check_analysis": {{
-    "engine": "Gemini API + Web Search",
-    "verdict": "Falso",
-    "reasoning": "Explicación basada en búsqueda web aquí",
-    "references": []
-  }}
-}}
-"""
+        FORMATO OBLIGATORIO (responde SOLO esto):
+        {{
+        "global_assessment": "Falso",
+        "fact_check_analysis": {{
+            "engine": "Gemini API + Web Search",
+            "verdict": "Falso",
+            "reasoning": "Explicación basada en búsqueda web aquí",
+            "references": []
+        }}
+        }}
+    """
 
     raw_response = generate_response(prompt)
 
