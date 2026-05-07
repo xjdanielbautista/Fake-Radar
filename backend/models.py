@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-# --- Lo que se recibe del Frontend/Extension---
+# --- Lo que se recibe del Frontend/Extension ---
 
 class AnalyzeRequest(BaseModel):
     # Noticia completa o fragmento de texto a analizar
@@ -19,11 +19,15 @@ class ShapFlag(BaseModel):
     impact_score: float
 
 class StyleAnalysis(BaseModel):
-    engine: str = "BETO NLP"
-    # Del 0 al 100, qué tan manipulado se ve el estilo de redacción
-    fake_probability_score: float
+    engine: str = "FakeRadar V5 (RoBERTa)"
+    # Del 0 al 100, qué tan manipulado se ve el estilo de redacción (None si hubo error)
+    fake_probability_score: Optional[float] = None
+    # Veredicto del motor local: "Falso" | "Dudoso" | "Verdadero" | "No disponible"
+    verdict: Optional[str] = None
     # Lista de las palabras sospechosas detectadas
-    shap_flags: List[ShapFlag]
+    shap_flags: List[ShapFlag] = []
+    # Mensaje de error (solo presente si el motor falló)
+    error: Optional[str] = None
 
 class Reference(BaseModel):
     # Titulo de la nota real

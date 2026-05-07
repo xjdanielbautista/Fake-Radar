@@ -1,29 +1,30 @@
-# uvicorn main:app --reload, that's the command to run this backend server in development mode. It will auto-reload on code changes.
+# uvicorn main:app --reload          →  desarrollo (auto-reload)
+# uvicorn main:app --host 0.0.0.0 --port 8000  →  producción / Docker
 
 import logging
 import os
+import json
 from datetime import datetime
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-import json
 
-# Importacion de modelos y servicio de AI
 from models import AnalyzeRequest, AnalyzeResponse
 from services.ai_service import generate_response
-from services.beto_service import analyze_style
+from services.fake_radar_service import analyze_style   # Motor V5 (RoBERTa)
+# beto_service.py se conserva en services/ como referencia histórica [DEPRECATED]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Se crea la instancia de FastAPI
+# =============================================================================
+# INSTANCIA FASTAPI
+# =============================================================================
 app = FastAPI(
     title="Fake Radar API",
     description="API para detección de desinformación. Motor Stateless.",
-    version="1.2.1"
+    version="2.0.0",
 )
 
-# Configuración de CORS: Esto es vital para que el Frontend (React) 
-# y la extension de Chrome puedan hablar con este backend sin que el navegador los bloquee.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,68 +33,92 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Endpoint de prueba para verificar que el backend está funcionando correctamente. Devuelve un mensaje simple en formato JSON.
+
+# =============================================================================
+# ENDPOINTS
+# =============================================================================
+
 @app.get("/")
 async def root():
-    return {"message": "El backend de Fake Radar esta en linea."}
+    return {"message": "Fake Radar API v2.0 en línea. Motor: FakeRadar V5 + Gemini."}
 
-# EL ENDPOINT PRINCIPAL: /analyze
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_news(request: AnalyzeRequest):
-
-    # Se ejecuta el análisis de estilo con BETO
-    beto_data = analyze_style(request.text)
-    
-    # Se construye el prompt para gemini, incluyendo el texto de la noticia y las instrucciones claras para el JSON valido
-    prompt = f"""
-    Eres un sistema experto en detección de desinformación y fact-checking periodístico.
-    Tu tono es objetivo, frío y analítico. No emitas opiniones personales.
-
-    Analiza la siguiente noticia utilizando los resultados de búsqueda web que tienes disponibles:
-
-    {request.text}
-
-    INSTRUCCIONES OBLIGATORIAS:
-    - Debes usar los resultados de la búsqueda web proporcionada para contrastar y verificar la noticia.
-    - Devuelve la respuesta en formato JSON sin ningún marcador Markdown como ```json.
-    - NO incluyas texto antes ni después del JSON.
-    - NO uses markdown, bloques de código ni ningún otro formato.
-    - El campo "references" debe ser siempre una lista vacía []. Las referencias reales se inyectarán automáticamente desde el grounding metadata.
-    - Si no puedes cumplir el formato, responde con un JSON válido con valores por defecto.
-
-    REGLAS DE VALORES:
-    - global_assessment: "Verdadero" | "Dudoso" | "Falso"
-    - verdict: "Verificado" | "Falso" | "Engañoso" | "Requiere verificación" | "No verificable"
-    - reasoning: resumen de 2-3 líneas explicando por qué tomaste esa decisión, basado en lo que encontraste en la web
-    - references: [] (siempre vacío, no incluyas URLs aquí)
-
-    FORMATO OBLIGATORIO (responde SOLO esto, sin ningún texto adicional):
-    {{
-      "global_assessment": "Falso",
-      "fact_check_analysis": {{
-        "engine": "Gemini API + Web Search",
-        "verdict": "Falso",
-        "reasoning": "Explicación basada en los resultados de búsqueda web aquí",
-        "references": []
-      }}
-    }}
     """
-    
-    # Se llama a la funcion que se comunica con gemini API
+    Endpoint principal de análisis.
+    Combina dos motores:
+      1. FakeRadar V5 (RoBERTa) — análisis de estilo y probabilidad de falsedad
+      2. Gemini API + Web Search — verificación de hechos con fuentes reales
+    """
+
+    # ------------------------------------------------------------------
+    # MOTOR 1: FakeRadar V5 — análisis local (rápido, sin API externa)
+    # ------------------------------------------------------------------
+    model_data = analyze_style(request.text)
+
+    # ------------------------------------------------------------------
+    # MOTOR 2: Gemini — fact-checking con búsqueda web
+    # Incluimos el score del modelo en el prompt para que Gemini tenga
+    # contexto adicional al momento de razonar sobre la noticia.
+    # ------------------------------------------------------------------
+    fake_score_context = ""
+    if model_data.get("fake_probability_score") is not None:
+        fake_score_context = (
+            f"\nNOTA DE CONTEXTO (no menciones esto en tu respuesta): "
+            f"Un modelo de ML especializado en fake news analizó el estilo de esta noticia "
+            f"y le asignó un {model_data['fake_probability_score']}% de probabilidad de ser falsa. "
+            f"Usa este dato como señal adicional, no como conclusión definitiva."
+        )
+
+    prompt = f"""
+        Eres un sistema experto en detección de desinformación y fact-checking periodístico.
+        Tu tono es objetivo, frío y analítico. No emitas opiniones personales.
+
+        Analiza la siguiente noticia utilizando los resultados de búsqueda web que tienes disponibles:
+
+        {request.text}
+        {fake_score_context}
+
+        INSTRUCCIONES OBLIGATORIAS:
+        - Usa los resultados de la búsqueda web para contrastar y verificar la noticia.
+        - Devuelve la respuesta en formato JSON sin ningún marcador Markdown como ```json.
+        - NO incluyas texto antes ni después del JSON.
+        - El campo "references" debe ser siempre una lista vacía []. Las referencias reales se inyectan automáticamente desde el grounding metadata.
+
+        REGLAS DE VALORES:
+        - global_assessment: "Verdadero" | "Dudoso" | "Falso"
+        - verdict: "Verificado" | "Falso" | "Engañoso" | "Requiere verificación" | "No verificable"
+        - reasoning: 2-3 líneas explicando la decisión basada en lo encontrado en la web.
+        - references: [] (siempre vacío)
+
+        FORMATO OBLIGATORIO (responde SOLO esto):
+        {{
+        "global_assessment": "Falso",
+        "fact_check_analysis": {{
+            "engine": "Gemini API + Web Search",
+            "verdict": "Falso",
+            "reasoning": "Explicación basada en búsqueda web aquí",
+            "references": []
+        }}
+        }}
+    """
+
     raw_response = generate_response(prompt)
-    
-    # Validacion y manejo de errores para asegurar que el backend siempre devuelve un JSON con la estructura correcta, incluso si Gemini falla o devuelve algo inesperado.
+
+    # ------------------------------------------------------------------
+    # PARSEO DE RESPUESTA GEMINI
+    # ------------------------------------------------------------------
     if isinstance(raw_response, dict):
-        if "error" in raw_response:
-            gemini_data = {
-                "global_assessment": "Error en el servidor de IA",
-                "fact_check_analysis": {
-                    "engine": "Gemini API", "verdict": "Error", "reasoning": raw_response["error"], "references": []
-                }
-            }
-        else:
-            # generate_response returned a dict directly — use it as-is
-            gemini_data = raw_response
+        gemini_data = raw_response if "error" not in raw_response else {
+            "global_assessment": "Error en el servidor de IA",
+            "fact_check_analysis": {
+                "engine":    "Gemini API",
+                "verdict":   "Error",
+                "reasoning": raw_response["error"],
+                "references": [],
+            },
+        }
     elif isinstance(raw_response, str):
         try:
             gemini_data = json.loads(raw_response)
@@ -101,45 +126,75 @@ async def analyze_news(request: AnalyzeRequest):
             gemini_data = {
                 "global_assessment": "Error de formato",
                 "fact_check_analysis": {
-                    "engine": "Gemini API", "verdict": "Error", "reasoning": "La IA no devolvió un JSON válido.", "references": []
-                }
+                    "engine":    "Gemini API",
+                    "verdict":   "Error",
+                    "reasoning": "La IA no devolvió un JSON válido.",
+                    "references": [],
+                },
             }
     else:
-        # None or unexpected type
         gemini_data = {
             "global_assessment": "Error en el servidor de IA",
             "fact_check_analysis": {
-                "engine": "Gemini API", "verdict": "Error", "reasoning": f"Tipo de respuesta inesperado: {type(raw_response)}", "references": []
-            }
+                "engine":    "Gemini API",
+                "verdict":   "Error",
+                "reasoning": f"Tipo de respuesta inesperado: {type(raw_response)}",
+                "references": [],
+            },
         }
 
-    # Fusion de los resultados de BETO y gemini en una respuesta final.
+    # ------------------------------------------------------------------
+    # VEREDICTO GLOBAL COMBINADO
+    # Si Gemini devuelve error → el veredicto del modelo local es el fallback.
+    # Si ambos coinciden → mayor confianza.
+    # Gemini tiene prioridad cuando funciona (tiene acceso a fuentes reales).
+    # ------------------------------------------------------------------
+    gemini_assessment = gemini_data.get("global_assessment", "Desconocido")
+    model_verdict     = model_data.get("verdict", "Desconocido")
+
+    if "Error" in gemini_assessment:
+        global_assessment = model_verdict
+    else:
+        global_assessment = gemini_assessment
+
+    # ------------------------------------------------------------------
+    # RESPUESTA FINAL — fusión de ambos motores
+    # ------------------------------------------------------------------
     final_response = {
-        "status": "success",
-        "global_assessment": gemini_data.get("global_assessment", "Desconocido"),
+        "status":            "success",
+        "global_assessment": global_assessment,
         "analysis": {
-            "style_analysis": beto_data,
-            "fact_check_analysis": gemini_data.get("fact_check_analysis", {})
-        }
+            "style_analysis":      model_data,
+            "fact_check_analysis": gemini_data.get("fact_check_analysis", {}),
+        },
     }
-    
+
     return final_response
 
-# Health check endpoint para monitoreo y logs de acceso.
+
+@app.get("/health")
+async def health_check():
+    """Estado general de la API (para Docker healthcheck y monitoreo)."""
+    return {
+        "status":    "OK",
+        "version":   "2.0.0",
+        "model":     "FakeRadar V5 (RoBERTa)",
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
 @app.get("/gemini-status")
 async def gemini_status(request: Request, response: Response):
-    """Gemini API endpoint for monitoring."""
+    """Estado de la conexión con Gemini API."""
+    timestamp  = datetime.now().strftime("%H:%M:%S")
+    client_ip  = request.client.host
+    api_key    = os.getenv("GEMINI_API_KEY")
+    up         = bool(api_key)
 
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    client_ip = request.client.host
+    logger.info(f"[{timestamp}] IP: {client_ip} | Gemini: {'Up' if up else 'Down'}")
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    gemini_status = "Up" if api_key else "Down"
-    
-    logger.info(f"[{timestamp}] | IP: {client_ip} | Gemini: {gemini_status} | Status: {'OK' if api_key else 'Error'}")
-    
-    if not api_key:
+    if not up:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return {"status": "Error", "message": "GEMINI_API_KEY is not set. Gemini API is down."}
-    
-    return {"status": "OK", "message": "API is operational"}
+        return {"status": "Error", "message": "GEMINI_API_KEY no configurada."}
+
+    return {"status": "OK", "message": "Gemini API operativa."}

@@ -1,3 +1,24 @@
+"""
+beto_service.py  [DEPRECATED]
+==============================
+Este módulo está en desuso desde la versión 2.0.0 del API.
+Fue reemplazado por services/fake_radar_service.py (motor FakeRadar V5 / RoBERTa).
+
+No eliminar: se conserva como referencia histórica y para comparación de resultados.
+NO importar desde main.py ni ningún módulo activo.
+
+Problemas conocidos del modelo BETO:
+  - fake_score usaba probs[0] (clase Real) en vez de probs[1] (clase Fake)
+  - No incluía campo 'verdict'
+  - MAX_LEN=512 (mayor al usado en entrenamiento del modelo sucesor)
+"""
+import warnings
+warnings.warn(
+    "beto_service está en desuso. Usa services.fake_radar_service en su lugar.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 import re
 import torch
 import numpy as np

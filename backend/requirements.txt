@@ -1,20 +1,24 @@
-# Librerias base
+# ===================================================================
+# Fake Radar API — requirements.txt
+# ===================================================================
 
-# FastAPI: El framework web principal para crear la API REST.
+# Servidor y framework
 fastapi==0.110.0
-
-# Uvicorn: Un servidor ASGI ligero y rápido para ejecutar la aplicación FastAPI.
 uvicorn==0.27.1
-
-# Pydantic: Para la validación de datos y la creación de modelos de datos.
 pydantic==2.6.3
-
-# Python-Dotenv
 python-dotenv==1.0.1
 
 # Google Generative AI SDK
 google-genai
 
-# Librerias para análisis de estilo con BETO
-transformers==5.0.0
-torch==2.11.0+cpu
+# Motor FakeRadar V5 (RoBERTa)
+# Versiones fijadas para evitar conflictos transformers/peft en Python 3.12
+transformers==4.47.0
+accelerate==1.2.0
+
+# PyTorch CPU — versión estable existente
+# Para GPU en producción cambiar a: torch==2.6.0+cu121
+torch==2.6.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Numpy (requerido por transformers y torch)
+numpy>=1.24.0,<2.0.0
